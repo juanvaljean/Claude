@@ -1,41 +1,75 @@
 # Cuefollow Prompter
 
-A teleprompter that listens as you read and keeps your next line on the marker.
-Plain HTML/JS: no build step, no server code, no accounts.
+A private teleprompter that listens as you read and keeps your next line on the marker.
 
-## Files
-- `index.html` – the whole app
-- `manifest.webmanifest`, `icon*.png`, `icon.svg` – lets you install it like an app
-- `sw.js` – makes it work offline after the first visit
+Speech recognition runs **on your device** by default. Your voice is never recorded, saved or sent anywhere.
 
-## Put it online (pick one, all free)
+Live site: https://juanvaljean.github.io/claude/
 
-The microphone only works on an `https://` address (or `localhost`), so host it rather than double-clicking the file.
+## Privacy
 
-**Netlify Drop (fastest, no account needed to try):** go to https://app.netlify.com/drop and drag the `cuefollow` folder onto the page. You get an https link in seconds.
+| | What happens |
+|---|---|
+| **Your voice** (default: *On this device*) | Recognised in your browser by the open-source [Vosk](https://alphacephei.com/vosk/) engine. Audio never leaves the device. |
+| **Your voice** (optional: *Browser's online speech*) | The browser sends audio to Google (Chrome), Microsoft (Edge) or Apple (Safari). Requires a confirmation, and resets to *On this device* every time the app opens. |
+| **Your script and settings** | Stored only in this browser (`localStorage`). |
+| **Network** | The page only loads files from its own site. A Content-Security-Policy forbids connecting to any other server. No analytics, ads, trackers, accounts or third-party fonts. |
+| **Hosting** | GitHub Pages serves the files, so GitHub sees visitors' IP addresses, like any web host. It never sees scripts or audio. |
+| **Erase my data** | One button removes the script, settings, the downloaded speech models and the offline copy of the app from the browser. |
 
-**GitHub Pages:** create a repo, upload these files, then Settings → Pages → Deploy from branch → `main` / root. Your app appears at `https://<username>.github.io/<repo>/`.
+The privacy badge in the top bar always shows which mode is active.
 
-**Cloudflare Pages / Vercel:** create a new project and upload the folder. Nothing to configure.
+## How it's built
 
-## Try it on your own computer
+Plain HTML, CSS and JavaScript. No build step, no server code.
+
 ```
-cd cuefollow
+index.html             page markup and security policy
+app.js / app.css       the app
+fonts.css, fonts/      self-hosted fonts (Atkinson Hyperlegible, Space Grotesk, JetBrains Mono)
+vendor/vosk.js         vosk-browser 0.0.8, unchanged from npm (Apache-2.0)
+sw.js                  offline support
+manifest.webmanifest   lets you install it as an app
+licenses/              third-party licenses
+.github/workflows/     publishes the site and fetches the speech models
+```
+
+### Speech models
+
+The models are **not stored in this repository**. Each time `main` is published, the GitHub Actions workflow downloads the official small models from Alpha Cephei, repackages them for the browser, and publishes them on this site:
+
+- English: `vosk-model-small-en-us-0.15` (about 40 MB)
+- Spanish: `vosk-model-small-es-0.42` (about 39 MB)
+
+A browser downloads a model the first time you press **Listen** in that language, then keeps it, so it works offline afterward. The recogniser is limited to the words in your script, which makes the small models accurate enough for following along.
+
+## Publishing (one-time setup)
+
+In the repository on GitHub: **Settings → Pages → Build and deployment → Source: GitHub Actions**.
+
+After that, every push to `main` publishes automatically. To update, edit the files, push, and bump `VERSION` in `sw.js` so installed copies refresh.
+
+## Install it as an app
+
+- **Chrome / Edge:** the install icon in the address bar.
+- **Safari on Mac:** File → Add to Dock.
+- **iPhone / iPad:** Share → Add to Home Screen.
+- **Android:** browser menu → Install app.
+
+## Browser support
+
+| Browser | On this device (private) | Browser's online speech |
+|---|---|---|
+| Chrome, Edge | Yes | Yes |
+| Safari (Mac, iPhone, iPad) | Yes | Yes |
+| Firefox | Yes | No |
+
+## Run it locally
+
+The models aren't in the repository, so for a local test put a model archive at `models/vosk-model-small-en-us-0.15.tar.gz`. The archive should contain the `vosk-model-small-en-us-0.15` folder from the official zip. Then:
+
+```
 python3 -m http.server 8000
 ```
-Then open http://localhost:8000 in Chrome or Edge.
 
-## Install it like an app
-- **Chrome / Edge (desktop):** the install icon in the address bar.
-- **iPhone / iPad (Safari):** Share → Add to Home Screen.
-- **Android (Chrome):** menu → Install app.
-
-## Browser support for voice following
-| Browser | Voice following |
-|---|---|
-| Chrome, Edge (desktop & Android) | Yes. Speech is processed by Google's/Microsoft's online service. |
-| Safari (Mac, iPhone, iPad) | Yes. Speech is processed by Apple. |
-| Firefox | No. Use Steady scroll. |
-
-## Updating
-Edit `index.html`, re-upload, and bump `VERSION` in `sw.js` so installed copies refresh their offline cache.
+Open http://localhost:8000.

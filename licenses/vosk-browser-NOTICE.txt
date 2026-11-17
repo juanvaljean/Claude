@@ -1,0 +1,7 @@
+vendor/vosk.js is vosk-browser 0.0.8 by Ciaran O'Reilly (https://github.com/ccoreilly/vosk-browser),
+copied unchanged from the npm package. It bundles the Vosk speech recognition toolkit by Alpha Cephei
+(https://github.com/alphacep/vosk-api). Both are licensed under the Apache License 2.0:
+https://www.apache.org/licenses/LICENSE-2.0
+
+The speech models (models/*.tar.gz) are downloaded during deployment from https://alphacephei.com/vosk/models
+and are licensed under the Apache License 2.0 by Alpha Cephei.

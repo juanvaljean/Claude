@@ -1,20 +1,26 @@
 // Keeps the app working offline after the first visit. Bump VERSION when you change files.
-const VERSION = "cuefollow-v1";
-const FILES = ["./", "index.html", "manifest.webmanifest", "icon.svg", "icon-192.png", "icon-512.png", "icon-180.png"];
+// Speech models are not cached here: the speech engine stores them itself, so they aren't kept twice.
+const VERSION = "cuefollow-v2";
+const FILES = [
+  "./", "index.html", "app.js", "app.css", "fonts.css", "vendor/vosk.js",
+  "manifest.webmanifest", "icon.svg", "icon-180.png", "icon-192.png", "icon-512.png"
+];
 
 self.addEventListener("install", e => {
   e.waitUntil(caches.open(VERSION).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
 });
 self.addEventListener("activate", e => {
-  e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== VERSION).map(k => caches.delete(k)))).then(() => self.clients.claim()));
+  e.waitUntil(caches.keys()
+    .then(keys => Promise.all(keys.filter(k => k.startsWith("cuefollow") && k !== VERSION).map(k => caches.delete(k))))
+    .then(() => self.clients.claim()));
 });
-// Network first, so edits show up right away; fall back to the cache when offline.
+// Network first, so updates show up right away; fall back to the cache when offline.
 self.addEventListener("fetch", e => {
-  if (e.request.method !== "GET") return;
+  const url = new URL(e.request.url);
+  if (e.request.method !== "GET" || url.origin !== location.origin || url.pathname.includes("/models/")) return;
   e.respondWith(
     fetch(e.request).then(res => {
-      const copy = res.clone();
-      caches.open(VERSION).then(c => c.put(e.request, copy)).catch(() => {});
+      if (res.ok) { const copy = res.clone(); caches.open(VERSION).then(c => c.put(e.request, copy)).catch(() => {}); }
       return res;
     }).catch(() => caches.match(e.request, { ignoreSearch: true }))
   );

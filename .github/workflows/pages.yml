@@ -1,0 +1,64 @@
+# Publishes Cuefollow to GitHub Pages.
+# The offline speech models are downloaded here, from Alpha Cephei (the makers of Vosk),
+# repackaged for the browser, and published alongside the app, so people's browsers
+# only ever download them from this site. They are not stored in the repository.
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Restore cached speech models
+        id: models-cache
+        uses: actions/cache@v4
+        with:
+          path: models
+          key: vosk-models-${{ hashFiles('.github/workflows/pages.yml') }}
+
+      - name: Download official speech models
+        if: steps.models-cache.outputs.cache-hit != 'true'
+        run: |
+          set -euo pipefail
+          mkdir -p models && cd models
+          for m in vosk-model-small-en-us-0.15 vosk-model-small-es-0.42; do
+            curl -fsSL --retry 3 -o "$m.zip" "https://alphacephei.com/vosk/models/$m.zip"
+            unzip -q "$m.zip"
+            tar -czf "$m.tar.gz" "$m"
+            rm -rf "$m" "$m.zip"
+          done
+          sha256sum *.tar.gz > SHA256SUMS
+          cat SHA256SUMS
+          ls -lh
+
+      - name: Assemble site
+        run: |
+          set -euo pipefail
+          mkdir -p _site
+          cp -r index.html app.js app.css fonts.css sw.js manifest.webmanifest icon* fonts vendor licenses models _site/
+          touch _site/.nojekyll
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+      - id: deployment
+        uses: actions/deploy-pages@v4
